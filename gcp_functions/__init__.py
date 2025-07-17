@@ -20,12 +20,15 @@ def create_function(name, entry_point, source_dir=None):
     if source_dir is None:
         source_dir = os.path.join(os.path.dirname(__file__), name)
     zip_asset = FileArchive(source_dir)
-    zip_object = BucketObject(
-        f"{name}-zip",
-        bucket=bucket.name,
-        source=zip_asset,
-        name=f"{name}.zip"
-    )
+    # Ensure bucket.name is resolved before creating BucketObject
+    def create_zip_object(resolved_bucket_name):
+        return BucketObject(
+            f"{name}-zip",
+            bucket=resolved_bucket_name,
+            source=zip_asset,
+            name=f"{name}.zip"
+        )
+    zip_object = bucket.name.apply(create_zip_object)
     def make_function(bucket_name, zip_name):
         return cloudfunctions.Function(
             name,
