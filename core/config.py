@@ -26,13 +26,14 @@ def load_config():
     gcp_config = pulumi.Config("gcp")
     config['pulumi_project'] = gcp_config.require("project")
     config['pulumi_region'] = gcp_config.get("region") or "us-central1"
-
-    # Import bucket name from buckets module
+    
+    # Import bucket resource from buckets module
     try:
-        from gcp_buckets import bucket_name
-        config['functions_bucket'] = bucket_name
+        from gcp_buckets import functions_bucket
+        config['functions_bucket'] = functions_bucket
     except ImportError:
         config['functions_bucket'] = None
+    
     return config
 
 # Example usage:

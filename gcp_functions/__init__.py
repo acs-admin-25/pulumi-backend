@@ -1,6 +1,6 @@
 import pulumi
 from pulumi_gcp import cloudfunctions
-from pulumi_gcp.storage import Bucket, BucketObject
+from pulumi_gcp.storage import BucketObject
 from pulumi import FileArchive
 import os
 from core.config import load_config
@@ -8,12 +8,10 @@ from core.config import load_config
 config = load_config()
 project = config['pulumi_project']
 region = config['pulumi_region']
+bucket = config['functions_bucket']
 
-# Use bucket from config if available, else create
-if config.get('functions_bucket'):
-    bucket = Bucket(config['functions_bucket'], location="US")
-else:
-    bucket = Bucket('my-bucket', location="US")
+if bucket is None:
+    raise ValueError("Functions bucket not found in config. Make sure gcp_buckets module is properly imported.")
 
 # Create Cloud Functions from source directories
 def create_function(name, entry_point, source_dir=None):

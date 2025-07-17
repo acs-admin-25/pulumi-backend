@@ -7,13 +7,13 @@ project = config['pulumi_project']
 region = config.get('pulumi_region', 'us-central1')
 
 # Create a GCP bucket for function source archives
-bucket = storage.Bucket(
+functions_bucket = storage.Bucket(
     "acs-functions-bucket",
     location=region,
     project=project,
     force_destroy=True
 )
 
-bucket_name = bucket.name
+functions_bucket_name = functions_bucket.name
 
-__all__ = ["bucket", "bucket_name"]
+__all__ = ["functions_bucket", "functions_bucket_name"]

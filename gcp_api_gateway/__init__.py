@@ -8,6 +8,7 @@ import os
 
 config = load_config()
 project = config['pulumi_project']
+functions_bucket = config['functions_bucket']
 
 # API to enable GCP API Gateway
 api_gateway_api = projects.Service("api-gateway-api",
