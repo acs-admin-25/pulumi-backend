@@ -67,7 +67,7 @@ for route in routes:
             name=f"{fname}",
             runtime="python39",
             entry_point=fname,
-            source_archive_bucket=config["bucket_name"],
+            source_archive_bucket=config["functions_bucket"],
             source_archive_object=config.get(f"{fname}_object_name"),
             trigger_http=True,
             available_memory_mb=128,

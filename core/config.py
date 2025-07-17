@@ -12,7 +12,7 @@ def load_config():
     # Load environment variables
     config['ENV'] = os.environ.get('ENV', 'development')
     config['DEBUG'] = os.environ.get('DEBUG', 'False') == 'True'
-    config['PROJECT_NAME'] = os.environ.get('PROJECT_NAME', 'default_project')
+    config['PROJECT_NAME'] = os.environ.get('PROJECT_NAME', '')
     # Import project module if specified
     project_module_name = os.environ.get('PROJECT_MODULE')
     if project_module_name:
@@ -26,6 +26,13 @@ def load_config():
     gcp_config = pulumi.Config("gcp")
     config['pulumi_project'] = gcp_config.require("project")
     config['pulumi_region'] = gcp_config.get("region") or "us-central1"
+
+    # Import bucket name from buckets module
+    try:
+        from gcp_buckets import bucket_name
+        config['functions_bucket'] = bucket_name
+    except ImportError:
+        config['functions_bucket'] = None
     return config
 
 # Example usage:
