@@ -22,7 +22,8 @@ login_route = Route(
         "username": {"type": "string"},
         "password": {"type": "string"}
     }, required=["username", "password"]),
-    responses=ACSResponse(codes=[200, 401], messages={200: "Login successful", 401: "Unauthorized"})
+    responses=ACSResponse(codes=[200, 401], messages={200: "Login successful", 401: "Unauthorized"}),
+    source="gcp_functions/login/main.py"
 )
 
 signup_route = Route(
@@ -34,8 +35,18 @@ signup_route = Route(
         "password": {"type": "string"},
         "email": {"type": "string"}
     }, required=["username", "password", "email"]),
-    responses=ACSResponse(codes=[201, 400], messages={201: "Signup successful", 400: "Bad request"})
+    responses=ACSResponse(codes=[201, 400], messages={201: "Signup successful", 400: "Bad request"}),
+    source="gcp_functions/signup/main.py"
 )
+
+# Optionally, add a healthcheck route if needed:
+# healthcheck_route = Route(
+#     path="/healthcheck",
+#     method="GET",
+#     summary="Healthcheck",
+#     responses=ACSResponse(codes=[200], messages={200: "Healthcheck OK"}),
+#     source="gcp_functions/healthcheck/main.py"
+# )
 
 routes = [login_route, signup_route]
 
