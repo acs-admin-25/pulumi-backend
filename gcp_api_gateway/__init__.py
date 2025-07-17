@@ -1,9 +1,9 @@
 import pulumi
-from pulumi_gcp import apigateway, projects, serviceaccount, cloudfunctions
+from pulumi_gcp import apigateway, projects
 from core.classes import Route, Gateway, ACSRequest, ACSResponse
 from core.config import load_config
+from gcp_functions import login_function, signup_function, healthcheck_function
 import os
-import uuid
 
 
 config = load_config()
@@ -56,26 +56,15 @@ routes = [login_route, signup_route]
 gateway = Gateway(title="ACS API Gateway", version="1.0.0")
 gateway.add_routes(routes)
 
-# For each route, set up a list of associated cloud functions and map their URLs
-route_functions = []
-route_function_urls = {}
-for route in routes:
-    if route.function_path:
-        fname = os.path.basename(os.path.dirname(route.function_path))
-        cloud_function = cloudfunctions.Function(
-            f"{fname}",
-            name=f"{fname}",
-            runtime="python39",
-            entry_point=fname,
-            source_archive_bucket=config["functions_bucket"],
-            source_archive_object=config.get(f"{fname}_object_name"),
-            trigger_http=True,
-            available_memory_mb=128,
-            project=project,
-            region=config.get("region", "us-central1"),
-        )
-        route_functions.append(cloud_function)
-        route_function_urls[route.path] = cloud_function.https_trigger_url
+# For each route, map the existing cloud functions to their URLs
+route_function_urls = {
+    "/login": login_function.https_trigger_url,
+    "/signup": signup_function.https_trigger_url,
+    # "/healthcheck": healthcheck_function.https_trigger_url  # Uncomment if needed
+}
+
+# List of functions for dependencies
+route_functions = [login_function, signup_function]
 
 
 # Deploy API Gateway
