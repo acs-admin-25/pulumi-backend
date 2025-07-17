@@ -45,7 +45,7 @@ class ACSResponse:
 class Route:
     VALID_METHODS = {"GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"}
 
-    def __init__(self, path, method, workflow=None, request_headers=None, summary=None, responses=None, request_body=None):
+    def __init__(self, path, method, workflow=None, request_headers=None, summary=None, responses=None, request_body=None, function_path=None):
         self.path = path
         # Parse method(s)
         if isinstance(method, str):
@@ -59,6 +59,7 @@ class Route:
         self.workflow = workflow
         self.request_headers = request_headers or []
         self.summary = summary
+        self.function_path = function_path
         if not isinstance(request_body, (ACSRequest, dict, type(None))):
             raise ValueError("request_body must be an instance of ACSRequest, dict, or None")
         if not isinstance(responses, (ACSResponse, dict, type(None))):
@@ -81,7 +82,7 @@ class Gateway:
     def add_routes(self, routes: list):
         self.routes.extend(routes)
 
-    def generate_openapi_spec(self):
+    def generate_openapi_spec(self, route_function_urls=None):
         paths = {}
         for route in self.routes:
             for method in route.methods:
@@ -98,6 +99,12 @@ class Gateway:
                         {"name": h, "in": "header", "required": False, "schema": {"type": "string"}}
                         for h in route.request_headers
                     ]
+                # Add x-google-backend if function URL is available
+                if route_function_urls and route.path in route_function_urls:
+                    op["x-google-backend"] = {
+                        "address": route_function_urls[route.path],
+                        "protocol": "h2"
+                    }
                 path_item[method_lower] = op
         spec = {
             "openapi": "3.0.0",
@@ -106,8 +113,8 @@ class Gateway:
         }
         return json.dumps(spec)
 
-    def deploy(self, gateway_id, display_name, region, project):
-        openapi_spec = self.generate_openapi_spec()
+    def deploy(self, gateway_id, display_name, region, project, route_function_urls=None, depends_on=None):
+        openapi_spec = self.generate_openapi_spec(route_function_urls)
         random_suffix = str(uuid.uuid4())[:8]
         api = apigateway.Api(f"{gateway_id}-api", api_id=gateway_id, project=project)
         config_name = f"{gateway_id}-config-{random_suffix}"
@@ -118,13 +125,14 @@ class Gateway:
             openapi_documents=[{"document": {"path": "openapi.json", "contents": openapi_spec}}],
             project=project,
         )
+        opts = pulumi.ResourceOptions(depends_on=(depends_on if depends_on else [api_config]))
         gateway = apigateway.Gateway(
             gateway_id,
             api_config=api_config.name,
             gateway_id=gateway_id,
             display_name=display_name,
             region=region,
-            opts=pulumi.ResourceOptions(depends_on=[api_config])
+            opts=opts
         )
         return gateway, api, api_config
 
