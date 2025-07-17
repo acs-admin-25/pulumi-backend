@@ -20,31 +20,32 @@ def create_function(name, entry_point, source_dir=None):
     if source_dir is None:
         source_dir = os.path.join(os.path.dirname(__file__), name)
     zip_asset = FileArchive(source_dir)
-    # Ensure bucket.name is resolved before creating BucketObject
-    def create_zip_object(resolved_bucket_name):
-        return BucketObject(
-            f"{name}-zip",
-            bucket=resolved_bucket_name,
-            source=zip_asset,
-            name=f"{name}.zip"
-        )
-    zip_object = bucket.name.apply(create_zip_object)
-    def make_function(bucket_name, zip_name):
-        return cloudfunctions.Function(
-            name,
-            name=name,
-            runtime="python310",
-            entry_point=entry_point,
-            source_archive_bucket=bucket_name,
-            source_archive_object=zip_name,
-            trigger_http=True,
-            available_memory_mb=128,
-            region=region,
-            project=project,
-            environment_variables={"ENV": config.get('ENV', 'production')},
-            opts=pulumi.ResourceOptions(depends_on=[zip_object])
-        )
-    return pulumi.Output.all(bucket.name, zip_object.name).apply(lambda args: make_function(args[0], args[1]))
+    
+    # Create the zip object in the bucket
+    zip_object = BucketObject(
+        f"{name}-zip",
+        bucket=bucket.name,
+        source=zip_asset,
+        name=f"{name}.zip"
+    )
+    
+    # Create the Cloud Function
+    function = cloudfunctions.Function(
+        name,
+        name=name,
+        runtime="python310",
+        entry_point=entry_point,
+        source_archive_bucket=bucket.name,
+        source_archive_object=zip_object.name,
+        trigger_http=True,
+        available_memory_mb=128,
+        region=region,
+        project=project,
+        environment_variables={"ENV": config.get('ENV', 'production')},
+        opts=pulumi.ResourceOptions(depends_on=[zip_object])
+    )
+    
+    return function
 
 login_function = create_function("login", "login", source_dir=os.path.join(os.path.dirname(__file__), "login"))
 signup_function = create_function("signup", "signup", source_dir=os.path.join(os.path.dirname(__file__), "signup"))
