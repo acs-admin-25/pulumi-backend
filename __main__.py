@@ -2,7 +2,6 @@
 
 import pulumi
 from pulumi_gcp import storage
-from gcp_function import sample_function
 from gcp_api_gateway import gateway, api, api_config
 
 # Get current project configuration
