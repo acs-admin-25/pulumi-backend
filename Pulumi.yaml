@@ -1,5 +1,5 @@
-name: acs-dev
-description: dev
+name: dev
+description: A minimal Google Cloud Python Pulumi program
 runtime:
   name: python
   options:
