@@ -15,7 +15,7 @@ if config.get('functions_bucket'):
 else:
     bucket = Bucket('my-bucket', location="US")
 
-# Create Cloud Functions for each route
+# Create Cloud Functions from source directories
 def create_function(name, entry_point, source_dir=None):
     if source_dir is None:
         source_dir = os.path.join(os.path.dirname(__file__), name)
@@ -26,20 +26,22 @@ def create_function(name, entry_point, source_dir=None):
         source=zip_asset,
         name=f"{name}.zip"
     )
-    return cloudfunctions.Function(
-        name,
-        name=name,
-        runtime="python310",
-        entry_point=entry_point,
-        source_archive_bucket=bucket.name,
-        source_archive_object=zip_object.name,
-        trigger_http=True,
-        available_memory_mb=128,
-        region=region,
-        project=project,
-        environment_variables={"ENV": config.get('ENV', 'production')},
-        opts=pulumi.ResourceOptions(depends_on=[zip_object])
-    )
+    def make_function(bucket_name, zip_name):
+        return cloudfunctions.Function(
+            name,
+            name=name,
+            runtime="python310",
+            entry_point=entry_point,
+            source_archive_bucket=bucket_name,
+            source_archive_object=zip_name,
+            trigger_http=True,
+            available_memory_mb=128,
+            region=region,
+            project=project,
+            environment_variables={"ENV": config.get('ENV', 'production')},
+            opts=pulumi.ResourceOptions(depends_on=[zip_object])
+        )
+    return pulumi.Output.all(bucket.name, zip_object.name).apply(lambda args: make_function(args[0], args[1]))
 
 login_function = create_function("login", "login", source_dir=os.path.join(os.path.dirname(__file__), "login"))
 signup_function = create_function("signup", "signup", source_dir=os.path.join(os.path.dirname(__file__), "signup"))
