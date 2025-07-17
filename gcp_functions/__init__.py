@@ -1,5 +1,5 @@
 import pulumi
-from pulumi_gcp import cloudfunctions
+from pulumi_gcp import cloudfunctions, projects
 from pulumi_gcp.storage import BucketObject
 from pulumi import FileArchive
 import os
@@ -9,6 +9,22 @@ config = load_config()
 project = config['pulumi_project']
 region = config['pulumi_region']
 bucket = config['functions_bucket']
+
+# Enable Cloud Functions API
+cloudfunctions_service = projects.Service(
+    "cloudfunctions-api",
+    service="cloudfunctions.googleapis.com",
+    project=project,
+    disable_on_destroy=False
+)
+
+# Enable Cloud Build API (required for Cloud Functions deployment)
+cloudbuild_service = projects.Service(
+    "cloudbuild-api", 
+    service="cloudbuild.googleapis.com",
+    project=project,
+    disable_on_destroy=False
+)
 
 if bucket is None:
     raise ValueError("Functions bucket not found in config. Make sure gcp_buckets module is properly imported.")
@@ -40,7 +56,7 @@ def create_function(name, entry_point, source_dir=None):
         region=region,
         project=project,
         environment_variables={"ENV": config.get('ENV', 'production')},
-        opts=pulumi.ResourceOptions(depends_on=[zip_object])
+        opts=pulumi.ResourceOptions(depends_on=[zip_object, cloudfunctions_service, cloudbuild_service])
     )
     
     return function
