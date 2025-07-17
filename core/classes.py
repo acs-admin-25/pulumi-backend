@@ -1,4 +1,3 @@
-from pyparsing import List
 import pulumi
 from pulumi_gcp import apigateway
 import json
@@ -79,7 +78,7 @@ class Gateway:
     def get_routes(self):
         return self.routes
 
-    def add_routes(self, routes: List[Route]):
+    def add_routes(self, routes: list):
         self.routes.extend(routes)
 
     def generate_openapi_spec(self):
