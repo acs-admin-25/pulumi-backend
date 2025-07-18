@@ -133,15 +133,31 @@ class Gateway:
             # If it's a direct string, encode it directly
             encoded_spec = encode_spec(openapi_spec)
         
+        # Create API first with proper dependencies
+        api_deps = []
+        if depends_on:
+            if isinstance(depends_on, list):
+                api_deps.extend(depends_on)
+            else:
+                api_deps.append(depends_on)
+        
+        api_opts = pulumi.ResourceOptions(depends_on=api_deps) if api_deps else None
+        api = apigateway.Api(
+            f"{gateway_id}-api",
+            api_id=gateway_id,
+            project=project,
+            opts=api_opts
+        )
+        
         random_suffix = str(uuid.uuid4())[:8]
-        api = apigateway.Api(f"{gateway_id}-api", api_id=gateway_id, project=project)
         config_name = f"{gateway_id}-config-{random_suffix}"
         
-        # ApiConfig depends on the Api
-        api_config_opts = pulumi.ResourceOptions(depends_on=[api])
+        # ApiConfig depends on the Api and all previous dependencies
+        api_config_deps = [api] + api_deps
+        api_config_opts = pulumi.ResourceOptions(depends_on=api_config_deps)
         api_config = apigateway.ApiConfig(
             config_name,
-            api=api.name,
+            api=api.api_id,  # Use api_id instead of name
             api_config_id=config_name,
             openapi_documents=[{"document": {"path": "openapi.json", "contents": encoded_spec}}],
             project=project,
@@ -149,13 +165,7 @@ class Gateway:
         )
         
         # Gateway depends on ApiConfig and any additional dependencies
-        gateway_deps = [api_config]
-        if depends_on:
-            if isinstance(depends_on, list):
-                gateway_deps.extend(depends_on)
-            else:
-                gateway_deps.append(depends_on)
-        
+        gateway_deps = [api_config] + api_deps
         gateway_opts = pulumi.ResourceOptions(depends_on=gateway_deps)
         gateway = apigateway.Gateway(
             gateway_id,

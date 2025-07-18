@@ -20,9 +20,10 @@ def load_config():
     else:
         config['project'] = None
 
-        gcp_config = pulumi.Config("gcp")
+    gcp_config = pulumi.Config("gcp")
     config['pulumi_project'] = gcp_config.require("project")
     config['pulumi_region'] = gcp_config.get("region") or "us-central1"
+    config['region'] = config['pulumi_region']  # Add explicit region key
 
     config['functions_bucket'] = "acs-functions-bucket"
 
