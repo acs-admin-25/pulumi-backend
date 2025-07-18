@@ -1,4 +1,3 @@
-import pulumi
 from pulumi_gcp import apigateway, projects
 from core.classes import Route, Gateway, ACSRequest, ACSResponse
 from core.config import load_config
