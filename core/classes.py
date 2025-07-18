@@ -84,7 +84,12 @@ class Gateway:
                 for method in route.methods:
                     method_lower = method.lower()
                     path_item = paths.setdefault(route.path, {})
+                    # Generate a unique operationId for each operation
+                    operation_id = f"{method_lower}_{route.path.replace('/', '_').replace('{', '').replace('}', '').strip('_')}"
+                    if not operation_id or operation_id == method_lower:
+                        operation_id = f"{method_lower}_root"
                     op = {
+                        "operationId": operation_id,
                         "summary": route.summary or "",
                         "responses": route.responses or {},
                     }
