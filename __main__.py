@@ -1,21 +1,21 @@
 """A Google Cloud Python Pulumi program"""
 
 import pulumi
-import gcp_buckets
-from gcp_functions.main import deploy as deploy_functions
-from gcp_api_gateway.main import deploy as deploy_api_gateway
+import gcp_buckets.main as gcp_buckets
+import gcp_functions.main as gcp_functions
+import gcp_api_gateway.main as gcp_api_gateway
 
 # Access bucket resource directly
 functions_bucket = gcp_buckets.bucket
 
-# Deploy functions  
-function_resources = deploy_functions()
+# Deploy functions
+function_resources = gcp_functions.deploy()
 login_function = function_resources['login_function']
 signup_function = function_resources['signup_function']
 healthcheck_function = function_resources['healthcheck_function']
 
 # Deploy API Gateway
-api_resources = deploy_api_gateway()
+api_resources = gcp_api_gateway.deploy()
 gateway_resource = api_resources['gateway_resource']
 api_resource = api_resources['api_resource']
 
