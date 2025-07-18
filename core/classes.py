@@ -88,11 +88,20 @@ class Gateway:
                         "summary": route.summary or "",
                         "responses": route.responses or {},
                     }
+                    # Convert OpenAPI 3.0 requestBody to Swagger 2.0 parameters
                     if route.request_body:
-                        op["requestBody"] = route.request_body
+                        # Extract schema from OpenAPI 3.0 format
+                        if "content" in route.request_body and "application/json" in route.request_body["content"]:
+                            schema = route.request_body["content"]["application/json"]["schema"]
+                            op["parameters"] = op.get("parameters", []) + [{
+                                "name": "body",
+                                "in": "body",
+                                "required": True,
+                                "schema": schema
+                            }]
                     if route.request_headers:
-                        op["parameters"] = [
-                            {"name": h, "in": "header", "required": False, "schema": {"type": "string"}}
+                        op["parameters"] = op.get("parameters", []) + [
+                            {"name": h, "in": "header", "required": False, "type": "string"}
                             for h in route.request_headers
                         ]
                     # Add x-google-backend if function URL is available
@@ -103,8 +112,10 @@ class Gateway:
                         }
                     path_item[method_lower] = op
             spec = {
-                "openapi": "3.0.0",
+                "swagger": "2.0",
                 "info": {"title": self.title, "version": self.version},
+                "produces": ["application/json"],
+                "consumes": ["application/json"],
                 "paths": paths
             }
             return json.dumps(spec)
