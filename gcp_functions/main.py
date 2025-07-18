@@ -4,11 +4,13 @@ from pulumi_gcp.storage import BucketObject
 from pulumi import FileArchive
 import os
 from core.config import load_config
+import gcp_buckets
 
+# Resource creation - define all resources but don't deploy
 config = load_config()
 project = config['pulumi_project']
 region = config['pulumi_region']
-bucket = config['functions_bucket']
+bucket = gcp_buckets.bucket
 
 # Enable Cloud Functions API
 cloudfunctions_service = projects.Service(
@@ -25,9 +27,6 @@ cloudbuild_service = projects.Service(
     project=project,
     disable_on_destroy=False
 )
-
-if bucket is None:
-    raise ValueError("Functions bucket not found in config. Make sure gcp_buckets module is properly imported.")
 
 # Create Cloud Functions from source directories
 def create_function(name, entry_point, source_dir=None):
@@ -61,8 +60,16 @@ def create_function(name, entry_point, source_dir=None):
     
     return function
 
+# Create all functions at module level
 login_function = create_function("login", "login", source_dir=os.path.join(os.path.dirname(__file__), "login"))
 signup_function = create_function("signup", "signup", source_dir=os.path.join(os.path.dirname(__file__), "signup"))
 healthcheck_function = create_function("healthcheck", "healthcheck", source_dir=os.path.join(os.path.dirname(__file__), "healthcheck"))
 
-__all__ = ["login_function", "signup_function", "healthcheck_function", "bucket"]
+def deploy():
+    """Deploy function and return function resources"""
+    return {
+        "login_function": login_function,
+        "signup_function": signup_function,
+        "healthcheck_function": healthcheck_function,
+        "bucket": bucket
+    }

@@ -4,14 +4,14 @@ import json
 import uuid
 
 class ACSRequest:
-    def __init__(self, properties=None, required=None):
+    def __init__(self, properties, required):
         self.schema = {
             "type": "object",
             "properties": properties if properties is not None else {
                 "requestId": {"type": "string"},
                 "payload": {"type": "object"}
             },
-            "required": required if required is not None else ["requestId", "payload"]
+            "required": required
         }
 
     def as_openapi(self):
@@ -24,16 +24,11 @@ class ACSRequest:
         }
 
 class ACSResponse:
-    def __init__(self, codes=None, messages=None):
+    def __init__(self, codes: list, messages: dict):
         self.responses = {}
-        default_codes = codes if codes is not None else [200, 400, 401, 404, 500]
-        default_messages = messages if messages is not None else {
-            200: "Success",
-            400: "Bad request",
-            401: "Unauthorized",
-            404: "Not found",
-            500: "Internal server error"
-        }
+        default_codes = codes
+        default_messages = messages
+
         for code in default_codes:
             self.responses[str(code)] = {
                 "description": default_messages.get(code, "")
@@ -47,7 +42,6 @@ class Route:
 
     def __init__(self, path, method, workflow=None, request_headers=None, summary=None, responses=None, request_body=None, function_path=None):
         self.path = path
-        # Parse method(s)
         if isinstance(method, str):
             methods = [m.strip() for m in method.split(",")]
             for m in methods:

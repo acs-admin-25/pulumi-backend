@@ -1,14 +1,29 @@
 """A Google Cloud Python Pulumi program"""
 
 import pulumi
-from gcp_api_gateway import gateway_resource, api_resource, api_config_resource
-from gcp_functions import login_function, signup_function, healthcheck_function, bucket
+import gcp_buckets
+from gcp_functions.main import deploy as deploy_functions
+from gcp_api_gateway.main import deploy as deploy_api_gateway
+
+# Access bucket resource directly
+functions_bucket = gcp_buckets.bucket
+
+# Deploy functions  
+function_resources = deploy_functions()
+login_function = function_resources['login_function']
+signup_function = function_resources['signup_function']
+healthcheck_function = function_resources['healthcheck_function']
+
+# Deploy API Gateway
+api_resources = deploy_api_gateway()
+gateway_resource = api_resources['gateway_resource']
+api_resource = api_resources['api_resource']
 
 # Export the important values
-pulumi.export('bucket_name', bucket.url)
+pulumi.export('bucket_name', functions_bucket.url)
 pulumi.export('api_gateway_url', gateway_resource.default_hostname.apply(lambda hostname: f"https://{hostname}"))
+pulumi.export('api_id', api_resource.name)
+pulumi.export('gateway_id', gateway_resource.name)
 pulumi.export('login_function_url', login_function.https_trigger_url)
 pulumi.export('signup_function_url', signup_function.https_trigger_url)
 pulumi.export('healthcheck_function_url', healthcheck_function.https_trigger_url)
-pulumi.export('api_id', api_resource.name)
-pulumi.export('gateway_id', gateway_resource.name)
