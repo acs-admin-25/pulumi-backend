@@ -4,13 +4,12 @@ from pulumi_gcp.storage import BucketObject
 from pulumi import FileArchive
 import os
 from core.config import load_config
-import gcp_buckets
 
 # Resource creation - define all resources but don't deploy
 config = load_config()
 project = config['pulumi_project']
 region = config['pulumi_region']
-bucket = gcp_buckets.bucket
+functions_bucket_name = config['functions_bucket']
 
 # Enable Cloud Functions API
 cloudfunctions_service = projects.Service(
@@ -37,7 +36,7 @@ def create_function(name, entry_point, source_dir=None):
     # Create the zip object in the bucket
     zip_object = BucketObject(
         f"{name}-zip",
-        bucket=bucket.name,
+        bucket=functions_bucket_name,
         source=zip_asset,
         name=f"{name}.zip"
     )
@@ -48,7 +47,7 @@ def create_function(name, entry_point, source_dir=None):
         name=name,
         runtime="python310",
         entry_point=entry_point,
-        source_archive_bucket=bucket.name,
+        source_archive_bucket=functions_bucket_name,
         source_archive_object=zip_object.name,
         trigger_http=True,
         available_memory_mb=128,
