@@ -77,35 +77,43 @@ class Gateway:
         self.routes.extend(routes)
 
     def generate_openapi_spec(self, route_function_urls=None):
-        paths = {}
-        for route in self.routes:
-            for method in route.methods:
-                method_lower = method.lower()
-                path_item = paths.setdefault(route.path, {})
-                op = {
-                    "summary": route.summary or "",
-                    "responses": route.responses or {},
-                }
-                if route.request_body:
-                    op["requestBody"] = route.request_body
-                if route.request_headers:
-                    op["parameters"] = [
-                        {"name": h, "in": "header", "required": False, "schema": {"type": "string"}}
-                        for h in route.request_headers
-                    ]
-                # Add x-google-backend if function URL is available
-                if route_function_urls and route.path in route_function_urls:
-                    op["x-google-backend"] = {
-                        "address": route_function_urls[route.path],
-                        "protocol": "h2"
+        def _generate_spec(resolved_urls):
+            paths = {}
+            for route in self.routes:
+                for method in route.methods:
+                    method_lower = method.lower()
+                    path_item = paths.setdefault(route.path, {})
+                    op = {
+                        "summary": route.summary or "",
+                        "responses": route.responses or {},
                     }
-                path_item[method_lower] = op
-        spec = {
-            "openapi": "3.0.0",
-            "info": {"title": self.title, "version": self.version},
-            "paths": paths
-        }
-        return json.dumps(spec)
+                    if route.request_body:
+                        op["requestBody"] = route.request_body
+                    if route.request_headers:
+                        op["parameters"] = [
+                            {"name": h, "in": "header", "required": False, "schema": {"type": "string"}}
+                            for h in route.request_headers
+                        ]
+                    # Add x-google-backend if function URL is available
+                    if resolved_urls and route.path in resolved_urls:
+                        op["x-google-backend"] = {
+                            "address": resolved_urls[route.path],
+                            "protocol": "h2"
+                        }
+                    path_item[method_lower] = op
+            spec = {
+                "openapi": "3.0.0",
+                "info": {"title": self.title, "version": self.version},
+                "paths": paths
+            }
+            return json.dumps(spec)
+        
+        # If route_function_urls contains Pulumi Output objects, resolve them first
+        if route_function_urls:
+            import pulumi
+            return pulumi.Output.all(**route_function_urls).apply(_generate_spec)
+        else:
+            return _generate_spec({})
 
     def deploy(self, gateway_id, display_name, region, project, route_function_urls=None, depends_on=None):
         openapi_spec = self.generate_openapi_spec(route_function_urls)
