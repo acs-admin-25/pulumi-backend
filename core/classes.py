@@ -136,21 +136,34 @@ class Gateway:
         random_suffix = str(uuid.uuid4())[:8]
         api = apigateway.Api(f"{gateway_id}-api", api_id=gateway_id, project=project)
         config_name = f"{gateway_id}-config-{random_suffix}"
+        
+        # ApiConfig depends on the Api
+        api_config_opts = pulumi.ResourceOptions(depends_on=[api])
         api_config = apigateway.ApiConfig(
             config_name,
             api=api.name,
             api_config_id=config_name,
             openapi_documents=[{"document": {"path": "openapi.json", "contents": encoded_spec}}],
             project=project,
+            opts=api_config_opts
         )
-        opts = pulumi.ResourceOptions(depends_on=(depends_on if depends_on else [api_config]))
+        
+        # Gateway depends on ApiConfig and any additional dependencies
+        gateway_deps = [api_config]
+        if depends_on:
+            if isinstance(depends_on, list):
+                gateway_deps.extend(depends_on)
+            else:
+                gateway_deps.append(depends_on)
+        
+        gateway_opts = pulumi.ResourceOptions(depends_on=gateway_deps)
         gateway = apigateway.Gateway(
             gateway_id,
             api_config=api_config.name,
             gateway_id=gateway_id,
             display_name=display_name,
             region=region,
-            opts=opts
+            opts=gateway_opts
         )
         return gateway, api, api_config
 
