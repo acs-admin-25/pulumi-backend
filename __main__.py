@@ -6,7 +6,7 @@ import gcp_functions
 import gcp_api_gateway
 
 # Access bucket resource directly
-functions_bucket = gcp_buckets.functions_bucket
+functions_bucket = gcp_buckets.deploy()['functions_bucket']
 
 # Deploy functions
 function_resources = gcp_functions.deploy()
