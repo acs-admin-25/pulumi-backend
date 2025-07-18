@@ -4,6 +4,7 @@ import pulumi
 import gcp_buckets
 import gcp_functions
 import gcp_api_gateway
+import core.config
 
 # Access bucket resource directly
 bucket_resources = gcp_buckets.deploy()
@@ -16,7 +17,14 @@ signup_function = function_resources['signup_function']
 healthcheck_function = function_resources['healthcheck_function']
 
 # Deploy API Gateway
-api_resources = gcp_api_gateway.deploy()
+api_gateway_resources = {
+    "route_function_urls": {
+        "/login": login_function.https_trigger_url,
+        "/signup": signup_function.https_trigger_url,
+    },
+    "functions": [login_function, signup_function],
+}
+api_resources = gcp_api_gateway.deploy(api_gateway_resources)
 gateway_resource = api_resources['gateway_resource']
 api_resource = api_resources['api_resource']
 

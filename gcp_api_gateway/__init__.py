@@ -1,13 +1,19 @@
 from pulumi_gcp import apigateway, projects
 from core.classes import Route, Gateway, ACSRequest, ACSResponse
 from core.config import load_config
-from gcp_functions import login_function, signup_function, healthcheck_function
 
 # Resource creation - define all resources but don't deploy
 
 """Create and configure API Gateway resources without deploying"""
 config = load_config()
 project = config['pulumi_project']
+
+# Enable GCP API Gateway service
+api_gateway_api = projects.Service("api-gateway-api",
+    service="apigateway.googleapis.com",
+    project=project,
+    disable_on_destroy=False
+)
 
 # Define routes
 login_route = Route(
@@ -35,39 +41,25 @@ signup_route = Route(
     function_path="gcp_functions/signup/main.py"
 )
 
+routes = [
+    login_route,
+    signup_route
+]
+
 # Create and configure gateway
 gateway = Gateway(title="ACS API Gateway", version="1.0.0")
-gateway.add_routes([login_route, signup_route])
+gateway.add_routes(routes)
 
-# Map routes to function URLs
-route_function_urls = {
-    "/login": login_function.https_trigger_url,
-    "/signup": signup_function.https_trigger_url,
-}
 
-resources = {
-    "gateway": gateway,
-    "route_function_urls": route_function_urls,
-    "functions": [login_function, signup_function, healthcheck_function],
-    "config": config,
-    "project": project
-}
-
-def deploy():
+def deploy(resources):
     """Deploy API Gateway resources, returning deployed resources"""
     # Get created resources
-    gateway = resources["gateway"]
     route_function_urls = resources["route_function_urls"]
     functions = resources["functions"]
-    config = resources["config"]
-    project = resources["project"]
 
-    # Enable GCP API Gateway service
-    api_gateway_api = projects.Service("api-gateway-api",
-        service="apigateway.googleapis.com",
-        project=project,
-        disable_on_destroy=False
-    )
+    # Ensure each route has a function URL
+    if len(routes) != len(route_function_urls):
+        raise ValueError("Number of routes must match number of function URLs")
 
     # Deploy API Gateway with all dependencies
     gateway_resource, api_resource, api_config_resource = gateway.deploy(
