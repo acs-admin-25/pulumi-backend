@@ -2,6 +2,7 @@ import pulumi
 from pulumi_gcp import apigateway
 import json
 import uuid
+import base64
 
 class ACSRequest:
     def __init__(self, properties, required):
@@ -117,6 +118,21 @@ class Gateway:
 
     def deploy(self, gateway_id, display_name, region, project, route_function_urls=None, depends_on=None):
         openapi_spec = self.generate_openapi_spec(route_function_urls)
+        
+        # Base64 encode the OpenAPI spec for GCP API Gateway
+        def encode_spec(spec_content):
+            if isinstance(spec_content, str):
+                return base64.b64encode(spec_content.encode('utf-8')).decode('utf-8')
+            return spec_content
+        
+        # Handle both direct strings and Pulumi Output objects
+        if hasattr(openapi_spec, 'apply'):
+            # If it's a Pulumi Output, apply the encoding function
+            encoded_spec = openapi_spec.apply(encode_spec)
+        else:
+            # If it's a direct string, encode it directly
+            encoded_spec = encode_spec(openapi_spec)
+        
         random_suffix = str(uuid.uuid4())[:8]
         api = apigateway.Api(f"{gateway_id}-api", api_id=gateway_id, project=project)
         config_name = f"{gateway_id}-config-{random_suffix}"
@@ -124,7 +140,7 @@ class Gateway:
             config_name,
             api=api.name,
             api_config_id=config_name,
-            openapi_documents=[{"document": {"path": "openapi.json", "contents": openapi_spec}}],
+            openapi_documents=[{"document": {"path": "openapi.json", "contents": encoded_spec}}],
             project=project,
         )
         opts = pulumi.ResourceOptions(depends_on=(depends_on if depends_on else [api_config]))
