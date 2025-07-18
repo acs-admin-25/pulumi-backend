@@ -70,5 +70,5 @@ def deploy():
         "login_function": login_function,
         "signup_function": signup_function,
         "healthcheck_function": healthcheck_function,
-        "bucket": bucket
+        "bucket": functions_bucket_name
     }
