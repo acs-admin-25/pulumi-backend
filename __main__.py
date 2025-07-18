@@ -4,7 +4,6 @@ import pulumi
 import gcp_buckets
 import gcp_functions
 import gcp_api_gateway
-import core.config
 
 # Access bucket resource directly
 bucket_resources = gcp_buckets.deploy()
