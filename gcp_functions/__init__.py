@@ -4,7 +4,7 @@ from pulumi_gcp.storage import BucketObject
 from pulumi import FileArchive
 import os
 from core.config import load_config
-import gcp_buckets
+import gcp_buckets # Ensure buckets are created before functions
 
 # Resource creation - define all resources but don't deploy
 config = load_config()
@@ -62,12 +62,13 @@ def create_function(name, entry_point, source_dir=None):
     
     return function
 
-# Create all functions at module level
-login_function = create_function("login", "login", source_dir=os.path.join(os.path.dirname(__file__), "login"))
-signup_function = create_function("signup", "signup", source_dir=os.path.join(os.path.dirname(__file__), "signup"))
-healthcheck_function = create_function("healthcheck", "healthcheck", source_dir=os.path.join(os.path.dirname(__file__), "healthcheck"))
 
 def deploy():
+    # Create all functions at module level
+    login_function = create_function("login", "login", source_dir=os.path.join(os.path.dirname(__file__), "login"))
+    signup_function = create_function("signup", "signup", source_dir=os.path.join(os.path.dirname(__file__), "signup"))
+    healthcheck_function = create_function("healthcheck", "healthcheck", source_dir=os.path.join(os.path.dirname(__file__), "healthcheck"))
+
     """Deploy function and return function resources"""
     return {
         "login_function": login_function,
