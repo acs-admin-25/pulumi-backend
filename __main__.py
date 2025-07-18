@@ -1,9 +1,9 @@
 """A Google Cloud Python Pulumi program"""
 
 import pulumi
-import gcp_buckets.main as gcp_buckets
-import gcp_functions.main as gcp_functions
-import gcp_api_gateway.main as gcp_api_gateway
+import gcp_buckets
+import gcp_functions
+import gcp_api_gateway
 
 # Access bucket resource directly
 functions_bucket = gcp_buckets.bucket
