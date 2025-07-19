@@ -76,9 +76,11 @@ def create_function(name, entry_point, source_dir=None):
             ingress_settings="ALLOW_ALL",
             all_traffic_on_latest_revision=True,
         ),
+
+        # Additional Configuration Options (Services to wait for, deleting existing functions)
         opts=pulumi.ResourceOptions(
             depends_on=[zip_object, cloudfunctions_service, cloudrun_service, cloudbuild_service],
-            replace_on_changes=["name", "location"]
+            delete_before_replace=True
         )
     )
     
