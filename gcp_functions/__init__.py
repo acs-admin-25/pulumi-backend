@@ -76,7 +76,10 @@ def create_function(name, entry_point, source_dir=None):
             ingress_settings="ALLOW_ALL",
             all_traffic_on_latest_revision=True,
         ),
-        opts=pulumi.ResourceOptions(depends_on=[zip_object, cloudfunctions_service, cloudrun_service, cloudbuild_service])
+        opts=pulumi.ResourceOptions(
+            depends_on=[zip_object, cloudfunctions_service, cloudrun_service, cloudbuild_service],
+            replace_on_changes=["name", "location"]
+        )
     )
     
     return function
