@@ -48,7 +48,10 @@ def create_function(name, entry_point, source_dir=None):
         bucket=functions_bucket.name,
         source=zip_asset,
         name=f"{name}.zip",
-        opts=pulumi.ResourceOptions(depends_on=[functions_bucket])
+        opts=pulumi.ResourceOptions(
+            depends_on=[functions_bucket],
+            delete_before_replace=True
+        )
     )
     
     # Create the Cloud Function v2

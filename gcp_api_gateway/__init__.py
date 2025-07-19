@@ -1,6 +1,7 @@
 from pulumi_gcp import apigateway, projects
 from core.classes import Route, Gateway, ACSRequest, ACSResponse
 from core.config import load_config
+from core.gateway_manager import create_gateway_manager
 
 # Resource creation - define all resources but don't deploy
 
@@ -81,21 +82,29 @@ def deploy(resources):
     if api_gateway_region not in supported_regions:
         api_gateway_region = "us-central1"  # fallback to supported region
     
-    gateway_resource, api_resource, api_config_resource = gateway.deploy(
+    # Use the new GatewayManager for smart updates
+    gateway_manager = create_gateway_manager(
         gateway_id="acs-public-gateway",
-        display_name="acs gateway",
-        region=api_gateway_region,
         project=project,
-        route_function_urls=route_function_urls,
+        region=api_gateway_region
+    )
+    
+    # Generate OpenAPI spec with function URLs
+    openapi_spec = gateway.generate_openapi_spec(route_function_urls)
+    
+    # Deploy with smart update strategy
+    deployed_resources = gateway_manager.deploy_with_smart_updates(
+        openapi_spec=openapi_spec,
+        display_name="acs gateway",
         depends_on=functions + [api_gateway_api, service_management_api, service_control_api]
     )
 
     # Return deployed resources for main stack
     return {
-        "gateway_resource": gateway_resource,
-        "api_resource": api_resource,
-        "api_config_resource": api_config_resource,
-        "gateway_url": gateway_resource.default_hostname,
+        "gateway_resource": deployed_resources['gateway'],
+        "api_resource": deployed_resources['api'],
+        "api_config_resource": deployed_resources['api_config'],
+        "gateway_url": deployed_resources['gateway'].default_hostname,
         "api_service": api_gateway_api,
         "service_management_api": service_management_api,
         "service_control_api": service_control_api

@@ -157,7 +157,10 @@ class Gateway:
             else:
                 api_deps.append(depends_on)
         
-        api_opts = pulumi.ResourceOptions(depends_on=api_deps) if api_deps else None
+        api_opts = pulumi.ResourceOptions(
+            depends_on=api_deps,
+            delete_before_replace=True
+        ) if api_deps else pulumi.ResourceOptions(delete_before_replace=True)
         api = apigateway.Api(
             f"{gateway_id}-api",
             api_id=gateway_id,
@@ -170,7 +173,10 @@ class Gateway:
         
         # ApiConfig depends on the Api and all previous dependencies
         api_config_deps = [api] + api_deps
-        api_config_opts = pulumi.ResourceOptions(depends_on=api_config_deps)
+        api_config_opts = pulumi.ResourceOptions(
+            depends_on=api_config_deps,
+            delete_before_replace=True
+        )
         api_config = apigateway.ApiConfig(
             config_name,
             api=api.api_id,  # Use api_id instead of name
@@ -182,7 +188,10 @@ class Gateway:
         
         # Gateway depends on ApiConfig and any additional dependencies
         gateway_deps = [api_config] + api_deps
-        gateway_opts = pulumi.ResourceOptions(depends_on=gateway_deps)
+        gateway_opts = pulumi.ResourceOptions(
+            depends_on=gateway_deps,
+            delete_before_replace=True
+        )
         gateway = apigateway.Gateway(
             gateway_id,
             api_config=api_config.name,
