@@ -18,8 +18,8 @@ healthcheck_function = function_resources['healthcheck_function']
 # Deploy API Gateway
 api_gateway_resources = {
     "route_function_urls": {
-        "/login": login_function.https_trigger_url,
-        "/signup": signup_function.https_trigger_url,
+        "/login": login_function.service_config.uri,
+        "/signup": signup_function.service_config.uri,
     },
     "functions": [login_function, signup_function],
 }
@@ -32,6 +32,6 @@ pulumi.export('bucket_name', functions_bucket.url)
 pulumi.export('api_gateway_url', gateway_resource.default_hostname.apply(lambda hostname: f"https://{hostname}"))
 pulumi.export('api_id', api_resource.name)
 pulumi.export('gateway_id', gateway_resource.name)
-pulumi.export('login_function_url', login_function.https_trigger_url)
-pulumi.export('signup_function_url', signup_function.https_trigger_url)
-pulumi.export('healthcheck_function_url', healthcheck_function.https_trigger_url)
+pulumi.export('login_function_url', login_function.service_config.uri)
+pulumi.export('signup_function_url', signup_function.service_config.uri)
+pulumi.export('healthcheck_function_url', healthcheck_function.service_config.uri)

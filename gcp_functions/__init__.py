@@ -1,5 +1,5 @@
 import pulumi
-from pulumi_gcp import cloudfunctions, projects
+from pulumi_gcp import cloudfunctionsv2, projects
 from pulumi_gcp.storage import BucketObject
 from pulumi import FileArchive
 import os
@@ -12,10 +12,18 @@ project = config['pulumi_project']
 region = config['pulumi_region']
 functions_bucket = gcp_buckets.functions_bucket
 
-# Enable Cloud Functions API
+# Enable Cloud Functions v2 API
 cloudfunctions_service = projects.Service(
     "cloudfunctions-api",
     service="cloudfunctions.googleapis.com",
+    project=project,
+    disable_on_destroy=False
+)
+
+# Enable Cloud Run API (required for Cloud Functions v2)
+cloudrun_service = projects.Service(
+    "cloudrun-api",
+    service="run.googleapis.com", 
     project=project,
     disable_on_destroy=False
 )
@@ -28,7 +36,7 @@ cloudbuild_service = projects.Service(
     disable_on_destroy=False
 )
 
-# Create Cloud Functions from source directories
+# Create Cloud Functions v2 from source directories
 def create_function(name, entry_point, source_dir=None):
     if source_dir is None:
         source_dir = os.path.join(os.path.dirname(__file__), name)
@@ -43,20 +51,32 @@ def create_function(name, entry_point, source_dir=None):
         opts=pulumi.ResourceOptions(depends_on=[functions_bucket])
     )
     
-    # Create the Cloud Function
-    function = cloudfunctions.Function(
+    # Create the Cloud Function v2
+    function = cloudfunctionsv2.Function(
         name,
         name=name,
-        runtime="python310",
-        entry_point=entry_point,
-        source_archive_bucket=functions_bucket.name,
-        source_archive_object=zip_object.name,
-        trigger_http=True,
-        available_memory_mb=128,
-        region=region,
+        location=region,
         project=project,
-        environment_variables={"ENV": config.get('ENV', 'production')},
-        opts=pulumi.ResourceOptions(depends_on=[zip_object, cloudfunctions_service, cloudbuild_service])
+        build_config=cloudfunctionsv2.FunctionBuildConfigArgs(
+            runtime="python310",
+            entry_point=entry_point,
+            source=cloudfunctionsv2.FunctionBuildConfigSourceArgs(
+                storage_source=cloudfunctionsv2.FunctionBuildConfigSourceStorageSourceArgs(
+                    bucket=functions_bucket.name,
+                    object=zip_object.name,
+                )
+            )
+        ),
+        service_config=cloudfunctionsv2.FunctionServiceConfigArgs(
+            max_instance_count=100,
+            min_instance_count=0,
+            available_memory="128Mi",
+            timeout_seconds=60,
+            environment_variables={"ENV": config.get('ENV', 'production')},
+            ingress_settings="ALLOW_ALL",
+            all_traffic_on_latest_revision=True,
+        ),
+        opts=pulumi.ResourceOptions(depends_on=[zip_object, cloudfunctions_service, cloudrun_service, cloudbuild_service])
     )
     
     return function
